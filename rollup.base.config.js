@@ -16,24 +16,40 @@ import json from "rollup-plugin-json";
 import path from "path";
 
 const pkg = require("./package.json");
-const depNames = Object.keys(pkg.dependencies).concat(Object.keys(pkg.peerDependencies));
+const depNames = Object.keys(pkg.dependencies).concat(
+  Object.keys(pkg.peerDependencies)
+);
 
-const input = "dist-esm/lib/index.js";
+const input = "dist-esm/src/index.js";
 const production = process.env.NODE_ENV === "production";
 
 export function nodeConfig(test = false) {
   const externalNodeBuiltins = [
-    'os', 'events', 'net', 'tls',
-    'path', 'fs', 'url', 'util',
-    'stream', 'punycode', 'http',
-    'https', 'assert', 'crypto',
-    'timers', 'string_decoder', 'zlib',
-    'dns'];
+    "os",
+    "events",
+    "net",
+    "tls",
+    "path",
+    "fs",
+    "url",
+    "util",
+    "stream",
+    "punycode",
+    "http",
+    "https",
+    "assert",
+    "crypto",
+    "timers",
+    "string_decoder",
+    "zlib",
+    "dns"
+  ];
 
   const baseConfig = {
     input: input,
     external: depNames.concat(externalNodeBuiltins),
     output: { file: "dist/index.js", format: "cjs", sourcemap: true },
+    preserveSymlinks: false,
     plugins: [
       sourcemaps(),
       replace({
@@ -52,7 +68,7 @@ export function nodeConfig(test = false) {
 
   if (test) {
     // entry point is every test file
-    baseConfig.input = "dist-esm/tests/**/*.spec.js";
+    baseConfig.input = "dist-esm/test/**/*.spec.js";
     baseConfig.plugins.unshift(multiEntry({ exports: false }));
 
     // different output file
@@ -60,7 +76,6 @@ export function nodeConfig(test = false) {
 
     // mark assert as external
     baseConfig.external.push();
-
   } else if (production) {
     baseConfig.plugins.push(uglify());
   }
@@ -71,21 +86,25 @@ export function nodeConfig(test = false) {
 export function browserConfig(test = false) {
   const baseConfig = {
     input: input,
-    output: { file: "browser/index.js", format: "umd", name: "Azure.AMQPCommon", sourcemap: true },
+    output: {
+      file: "browser/index.js",
+      format: "umd",
+      name: "Azure.AMQPCommon",
+      sourcemap: true
+    },
+    preserveSymlinks: false,
     plugins: [
       sourcemaps(),
 
-      replace(
-        {
-          delimiters: ["", ""],
-          values: {
-            // replace dynamic checks with if (false) since this is for
-            // browser only. Rollup's dead code elimination will remove
-            // any code guarded by if (isNode) { ... }
-            "if (isNode)": "if (false)"
-          }
+      replace({
+        delimiters: ["", ""],
+        values: {
+          // replace dynamic checks with if (false) since this is for
+          // browser only. Rollup's dead code elimination will remove
+          // any code guarded by if (isNode) { ... }
+          "if (isNode)": "if (false)"
         }
-      ),
+      }),
 
       // fs, net, and tls are used by rhea and need to be shimmed
       // TODO: get these into rhea's pkg.browser field
@@ -105,14 +124,14 @@ export function browserConfig(test = false) {
       }),
 
       nodeResolve({
-        preferBuiltins: false,
-        browser: true
+        mainFields: ["module", "browser"],
+        preferBuiltins: false
       }),
 
       cjs({
         namedExports: {
-          "chai": ["should"],
-          "assert": ["equal", "deepEqual", "notEqual"]
+          chai: ["should"],
+          assert: ["equal", "deepEqual", "notEqual"]
         }
       }),
 
@@ -130,7 +149,7 @@ export function browserConfig(test = false) {
   };
 
   if (test) {
-    baseConfig.input = "dist-esm/tests/**/*.spec.js";
+    baseConfig.input = "dist-esm/test/**/*.spec.js";
     baseConfig.plugins.unshift(multiEntry({ exports: false }));
     baseConfig.output.file = "test-browser/index.js";
   } else if (production) {
@@ -139,4 +158,3 @@ export function browserConfig(test = false) {
 
   return baseConfig;
 }
-
