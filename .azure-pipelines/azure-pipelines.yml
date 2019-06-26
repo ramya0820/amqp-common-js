@@ -122,8 +122,9 @@ jobs:
 
       - task: Npm@1
         inputs:
-          command: 'install'
-        displayName: 'npm install'
+          command: 'custom'
+          customCommand: 'ci'
+        displayName: 'npm ci'
 
       - task: Npm@1
         inputs:
